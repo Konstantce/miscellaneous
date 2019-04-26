@@ -1,9 +1,10 @@
 import math
 
 EMBD_DEGREES = [6, 12, 24]
-START_DISCR = -125
-#STATIC_R = 21888242871839275222246405745257275088548364400416034343698204186575808495617
-STATIC_R = 982451653
+START_DISCR = -3
+STATIC_R = 21888242871839275222246405745257275088548364400416034343698204186575808495617
+#STATIC_R = 982451653
+STATIC_R = 13381
 
 def check_embedding_degree(r):
     for k in EMBD_DEGREES:
@@ -19,17 +20,26 @@ def get_root_of_unity(r, k):
     root_of_unity = gen ^ a
     return root_of_unity
 
+
+def check_if_fundamental_Disc(d):
+    if -d % 16 not in [3, 4, 7, 8, 11, 15]:
+        return False
+    M = squarefree_part(d)
+    L = d / M
+    while L % 2 == 0:
+        L = L / 2
+    return True if L == 1 else False
     
 def get_params(r):
     D = START_DISCR
     field = GF(r)
     
     while True:
-        if D % 4 == 2 or D % 4 == 3:
+        if not check_if_fundamental_Disc(D):
             D -= 1
             continue
             
-        if kronecker(-D, r) != 1:
+        if kronecker(D, r) != 1:
             D -= 1
             continue
         
@@ -37,7 +47,7 @@ def get_params(r):
             if (r - 1) % k == 0:
                 g = get_root_of_unity(r, k)
                 t_ = g + 1
-                u_ = (t_ - 2) / field(-D).sqrt()
+                u_ = (t_ - 2) / field(D).sqrt()
     
                 t = int(t_)
                 u = int(u_)
@@ -104,10 +114,6 @@ def Cocks_Pinch(r):
     D, p, g, k = get_params(r)
     coeffs_list = get_curve_params(D, p)
     
-    base_field = GF(p)
-    extension_field = GF(p^k, name = 't')
-    ext_field_modulus = extension_field.modulus()
-    
     return p, coeffs_list, k, D
 
 
@@ -118,21 +124,26 @@ def test_ring_change():
     print reduced_poly.roots()
     
     
+def find_group_generators(p, k):
+    base_field = GF(p)
+    extension_field = GF(p^k, name = 't')
+    ext_field_modulus = extension_field.modulus()
+    #TBD
+    
+    
 def select_curve(p, coeffs_list, k, r):
     field = GF(p)
     for (A, B) in coeffs_list:
-        curve = EllipticCurve(field, field(A), field(B))
+        curve = EllipticCurve(field, [A, B])
         order = curve.cardinality()
-        print A, B, order
         if order % r == 0:
             
             print "Curve found!"
             return A, B
         
     
-if __name__ == "__main__":    
-    p, coeffs_list, k, D = Cocks_Pinch(STATIC_R)
-    print D, (-D) % 16, factor(D)
-    result = select_curve(p, coeffs_list, k, STATIC_R)
+if __name__ == "__main__":   
     
+    p, coeffs_list, k, D = Cocks_Pinch(STATIC_R)
+    result = select_curve(p, coeffs_list, k, STATIC_R)
 
