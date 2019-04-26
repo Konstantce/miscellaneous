@@ -1,7 +1,7 @@
 import math
 
 EMBD_DEGREES = [6, 12, 24]
-START_DISCR = -3
+START_DISCR = -125
 #STATIC_R = 21888242871839275222246405745257275088548364400416034343698204186575808495617
 STATIC_R = 982451653
 
@@ -41,32 +41,59 @@ def get_params(r):
     
                 t = int(t_)
                 u = int(u_)
-                p = (t^2 + D * u^2) / 4
+            
+                p = (t^2 - D * u^2) / 4
 
                 if p in ZZ and p in Primes():
-                    print D
-                    return D, p, g, k
+                    return D, p, int(g), k
         D -=1
-        print D
 
-    
+        
+def find_nonresidue(field):
+    p = field.characteristic()
+   
+    while True:
+        x = field.random_element()
+        if x.is_square():
+            continue
+        if ( p % 3 == 1) and (x^((p-1) / 3) == field(1)):
+            continue
+        
+        return x
+
+
 def get_curve_params(D, p):
-    if D == -4:
-        return (-1, 0)
-    if D== -3:
-        return (0, -1)
+    #return all possible pairs!
     
     field = GF(p)
+    g = find_nonresidue(field)
+    
+    if D == -4:
+        res = []
+        for k in xrange(4):
+            pair = (int(-g^k), 0)
+            res.append(pair)
+        return res
+
+    if D == -3:
+        res = []
+        for k in xrange(6):
+            pair = (0, int(-g^k))
+            res.append(pair)
+        return res
+    
+
     Hilbert_poly = hilbert_class_polynomial(D)
-    reduced_poly = Hilbert_poly.change_ring(field)
-    j = reduced_poly.roots()[0][0]
+    #reduced_poly = Hilbert_poly.change_ring(field)
+    #j = reduced_poly.roots()[0][0]
+    j = Hilbert_poly.any_root(field)
     print j
     
     c = j/(j - field(1728))
-    r = int(field(-3)*c)
-    s = int(field(2)*c)
+    r = field(-3)*c
+    s = field(2)*c
     
-    return (r, s)
+    return [(int(r), int(s)), (int(r * g^2), int(s * g^3))]
 
 
 def Cocks_Pinch(r):
@@ -75,14 +102,13 @@ def Cocks_Pinch(r):
         return False
 
     D, p, g, k = get_params(r)
-
-    A, B = get_curve_params(D, p)
+    coeffs_list = get_curve_params(D, p)
     
     base_field = GF(p)
     extension_field = GF(p^k, name = 't')
     ext_field_modulus = extension_field.modulus()
     
-    return p, A, B, k
+    return p, coeffs_list, k, D
 
 
 def test_ring_change():
@@ -92,20 +118,21 @@ def test_ring_change():
     print reduced_poly.roots()
     
     
-def check_curve(p, A, B, k, l):
+def select_curve(p, coeffs_list, k, r):
     field = GF(p)
-    curve = EllipticCurve(field, A, B)
-    print "HERE!"
-    order = curve.cardinality()
-    print order, (order % l)
+    for (A, B) in coeffs_list:
+        curve = EllipticCurve(field, field(A), field(B))
+        order = curve.cardinality()
+        print A, B, order
+        if order % r == 0:
+            
+            print "Curve found!"
+            return A, B
+        
+    
+if __name__ == "__main__":    
+    p, coeffs_list, k, D = Cocks_Pinch(STATIC_R)
+    print D, (-D) % 16, factor(D)
+    result = select_curve(p, coeffs_list, k, STATIC_R)
+    
 
-    
-if __name__ == "__main__":
-    
-    p, A, B, k = Cocks_Pinch(STATIC_R)
-    check_curve(p, A, B, k, STATIC_R)
-    
-    print "Base Field = ", p
-    print "A = ", A
-    print "B = ", B
-    print "k = ", k
