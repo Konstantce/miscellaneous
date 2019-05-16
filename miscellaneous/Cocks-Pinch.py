@@ -97,7 +97,6 @@ def get_curve_params(D, p):
     #reduced_poly = Hilbert_poly.change_ring(field)
     #j = reduced_poly.roots()[0][0]
     j = Hilbert_poly.any_root(field)
-    print j
     
     c = j/(j - field(1728))
     r = field(-3)*c
@@ -123,14 +122,7 @@ def test_ring_change():
     reduced_poly = poly.change_ring(GF(3))
     print reduced_poly.roots()
     
-    
-def find_group_generators(p, k):
-    base_field = GF(p)
-    extension_field = GF(p^k, name = 't')
-    ext_field_modulus = extension_field.modulus()
-    #TBD
-    
-    
+
 def select_curve(p, coeffs_list, k, r):
     field = GF(p)
     for (A, B) in coeffs_list:
@@ -142,8 +134,56 @@ def select_curve(p, coeffs_list, k, r):
             return A, B
         
     
+def find_group_generators(p, k, A, B, r):
+    K.<a> = GF(p^k)
+    E = EllipticCurve(GF(p), [A, B])
+    EK = E.base_extend(K)
+    
+    cofactor = int(EK.cardinality() / r)
+    
+    G1 = E.random_point()
+    while G1.order() % r != 0:
+        G1 = E.random_point()
+    G1 = G1 * int(G1.order() / r)
+
+    if G1.order() != r:
+        print "G1 Error!"
+        return False
+    
+    G2 = EK.random_point()
+    while G2.order() % r != 0:
+        G2 = EK.random_point()
+    G2 = G2 * int(G2.order() / r)
+
+    if G2.order() != r:
+        print "G1 Error!"
+        return False
+    
+    P = EK(G1)
+    Gt = P.tate_pairing(G2, r, k)
+    
+    if Gt.multiplicative_order() != r:
+        print "Gt Error!"
+        return False
+
+    return G1, G2, Gt
+    
+    
+def print_params(p, A, B, k, G1, G2, Gt):
+    print "Curve base field: ", p
+    print "A: ", A
+    print "B: ", B
+    print "embedding degree: ", k
+    print "generator of first source group: ", G1
+    print "generator of second source group: ", G2
+    print "generator of destination group: ", Gt
+    
+        
+    
 if __name__ == "__main__":   
     
     p, coeffs_list, k, D = Cocks_Pinch(STATIC_R)
-    result = select_curve(p, coeffs_list, k, STATIC_R)
-
+    A, B = select_curve(p, coeffs_list, k, STATIC_R)
+    G1, G2, Gt = find_group_generators(p, k, A, B, STATIC_R)
+    
+    print_params(p, A, B, k, G1, G2, Gt)
