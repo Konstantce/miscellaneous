@@ -1,10 +1,4 @@
-
-            
-        
-        
-                   
-        
-                   import itertools
+import itertools
 import collections
 
 #PLONK arithmetizer
