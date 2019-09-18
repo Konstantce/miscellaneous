@@ -935,8 +935,10 @@ def make_curve(q,t,r,k,D,debug=False):
     j_inv = poly.any_root(GF(q)) # find j-invariant 
     print "j_inv found"
     orig_curve = EllipticCurve(GF(q), j=j_inv) # make a curve
+    print "curve constructed!"
     E = orig_curve
     check = test_curve(q,t,r,k,D,E) # see if this is the right curve
+    print "curve checked!"
     twist = False
     if not check: # not the right curve, use quadratic twist
         E = E.quadratic_twist()
@@ -985,13 +987,16 @@ def test_curve(q,t,r,k,D,E):
         bool - true iff E is an elliptic curve over F_q with trace t, a subgroup of order r with embedding degree k, and fundamental discriminant D
     
     """    
-    bool = True
-    bool = bool and (power_mod(q, k, r) == 1) #q^k -1 ==0 mod r
-    bool = bool and (E.trace_of_frobenius() == t)
-    bool = bool and (kronecker((t*t-4*q) * Integer(D).inverse_mod(q),q) == 1)
-    bool = bool and (E.cardinality() == q+1-t)
-    bool = bool and (E.cardinality() % r ==0)
-    return bool
+    
+    print "modified!"
+    if (power_mod(q, k, r) != 1) or (kronecker((t*t-4*q) * Integer(D).inverse_mod(q),q) != 1):
+        print "eee"
+        return False
+    card = E.cardinality()
+    print "ggg"
+    return (card == q+1-t) and (card % r == 0)
+    
+    
 
 
 def get_final_exp_params(x, p):
@@ -1136,8 +1141,8 @@ def print_all_data(p, r, k, nonresidue, curve, twisted_curve, G1, G2, T, w_1, w_
     
 def generate_test_curves(filename):
     f = open(filename,'w')
-    for k in (4, 6):
-        for num_bits in xrange(325, 400, 25):
+    for k in (6, 4):
+        for num_bits in xrange(100, 500, 25):
             found = False
             print "..........."
             while not found:
