@@ -1,12 +1,14 @@
-
-               import itertools
+import itertools
 import collections
 
 #PLONK arithmetizer
-p = 257
+#p = 257
+p = 21888242871839275222246405745257275088548364400416034343698204186575808495617
 field = GF(p)
-omega = field.multiplicative_generator()
+#omega = field.multiplicative_generator()
+omega = field(7)
 poly_ring = PolynomialRing(field, 'x')
+
 
 def next_power_of_2(x):  
     return 1 if x == 0 else 2**(x - 1).nbits()
@@ -107,7 +109,7 @@ class ConstraintSystem:
                          
         for i in xrange(self.total_num_public_wires):
             c = self.constraints[i]
-            if any([c.q_l != field(1), c.q_r != field(0), c.q_0 != field(0), c.q_m != field(0), c.q_c != field(0)]):
+            if any([c.q_l != field(1), c.q_r != field(0), c.q_0 != field(0), c.q_m != field(0)]): # c.q_c != field(0)]):
                    raise Exception("Selectors are incorrect")
                    
             
@@ -136,8 +138,9 @@ class ConstraintSystem:
         g = omega ** d
                    
         #if this asserion is really important:
-        if (m < n) or (m > 2*n):
-            raise Exception("unbalanced contraint system")
+#         print m, n
+#         if (m < n) or (m > 2*n):
+#             raise Exception("unbalanced contraint system")
                    
         domain = [g**k for k in xrange(1, n+1)]
                    
@@ -167,9 +170,9 @@ class ConstraintSystem:
         nc = len(self.constraints)
         temp = n - nc
         if temp > 0:
-            perm[0] += [i for i in xrange(nc, n)]
-            perm[0] += [i for i in xrange(nc+n, 2*n)]
-            perm[0] += [i for i in xrange(nc+2*n, 3*n)]
+            perm[1] += [i for i in xrange(nc, n)]
+            perm[1] += [i for i in xrange(nc+n, 2*n)]
+            perm[1] += [i for i in xrange(nc+2*n, 3*n)]
                    
         #construct permutation as a function
         perm = Permutation(list(perm.values()))
@@ -181,7 +184,7 @@ class ConstraintSystem:
         P2 = construct_interpolation_poly(domain, [perm(i+n) for i in xrange(n)])
         P3 = construct_interpolation_poly(domain, [perm(i+2*n) for i in xrange(n)])
                    
-        return q_L, q_R, q_M, q_C, q_O, S1, S2, S3, P1, P2, P3
+        return g, q_L, q_R, q_M, q_C, q_O, S1, S2, S3, P1, P2, P3
     
     
 def print_polys(q_L, q_R, q_M, q_C, q_O, S1, S2, S3, P1, P2, P3):
@@ -199,24 +202,33 @@ def print_polys(q_L, q_R, q_M, q_C, q_O, S1, S2, S3, P1, P2, P3):
                                
         
 def build_test_constraint_system():
-    #all variables are private: a, b, c
-    #2*a-b = 0
-    #a*b = c
+    # unity is public, all variables are private: unity, zero,a, b, c
+    # unity - 1 = 0
+    # zero = 0
+    # 2*a-b = 0
+    # 10*b-c = 0
+    # a*b = c
     
     system = ConstraintSystem(0)
+    unity = system.add_wire()
+    zero = system.add_wire()
     a = system.add_wire()
     b = system.add_wire()
     c = system.add_wire()
     
-    system.add_constraint(2, -1, 0, 0, 0, a, b, c)
+    system.add_constraint(1, 0, 0, 0, -1, unity, zero, zero)
+    system.add_constraint(1, 0, 0, 0, 0, zero, zero, zero)
+    system.add_constraint(2, -1, 0, 0, 0, a, b, zero)
+    system.add_constraint(10, -1, 0, 0, 0, b, c, zero)
     system.add_constraint(0, 0, 1, 1, 0, a, b, c)
     
     polys = system.construct_poly_encoding()
-    print_polys(*polys)
-    
+    #print_polys(*polys)
+    g = polys[0]
+    f = polys[3]
+    print f(g), f(g^2), f(g^3), f(g^4), f(g^5), f(g^6), f(g^7)
     
 build_test_constraint_system()
-
 
 
 
