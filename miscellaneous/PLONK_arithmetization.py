@@ -1,4 +1,5 @@
-import itertools
+
+               import itertools
 import collections
 
 #PLONK arithmetizer
@@ -23,7 +24,6 @@ class Permutation:
             a = collections.deque(cycle)
             b = collections.deque(cycle)
             b.rotate(1)
-            print a, b
             for (i, j) in zip(a, b):
                 self.func[i] = j
     
@@ -156,8 +156,7 @@ class ConstraintSystem:
         S3 = S1 + 2*n
                    
         #construct permutation polynomials P1, P2, P3
-        #we start with defining the permutation \delta
-                   
+        #we start with defining the permutation \delta    
         perm = {k: [] for k in xrange(m)}
         for i, cnstr in enumerate(self.constraints):
             perm[cnstr.a_wire.get_id()].append(i)
@@ -167,24 +166,36 @@ class ConstraintSystem:
         #add elements from dumb padding constraints
         nc = len(self.constraints)
         temp = n - nc
-        print temp
         if temp > 0:
-            perm[0] += [i for i in xrange(nc+1, n)]
-            perm[0] += [i for i in xrange(nc+1+n, 2*n)]
-            perm[0] += [i for i in xrange(nc+1+2*n, 3*n)]
+            perm[0] += [i for i in xrange(nc, n)]
+            perm[0] += [i for i in xrange(nc+n, 2*n)]
+            perm[0] += [i for i in xrange(nc+2*n, 3*n)]
                    
         #construct permutation as a function
         perm = Permutation(list(perm.values()))
-        print n, perm.size()
-#         if perm.size() != n:
-#             raise Exception("Permutation size is incorrect")
+        if perm.size() != 3*n:
+             raise Exception("Permutation size is incorrect")
         
         #P_{j}(g^i) = perm((j−1)·n+i)
         P1 = construct_interpolation_poly(domain, [perm(i) for i in xrange(n)])
         P2 = construct_interpolation_poly(domain, [perm(i+n) for i in xrange(n)])
-        P1 = construct_interpolation_poly(domain, [perm(i+2*n) for i in xrange(n)])
+        P3 = construct_interpolation_poly(domain, [perm(i+2*n) for i in xrange(n)])
                    
         return q_L, q_R, q_M, q_C, q_O, S1, S2, S3, P1, P2, P3
+    
+    
+def print_polys(q_L, q_R, q_M, q_C, q_O, S1, S2, S3, P1, P2, P3):
+    print "q_L: ", q_L
+    print "q_R: ", q_R
+    print "q_M: ", q_M
+    print "q_C: ", q_C
+    print "q_O: ", q_O
+    print "S1: ", S1
+    print "S2: ", S2
+    print "S3: ", S3
+    print "P1: ", P1
+    print "P2: ", P2
+    print "P3: ", P3
                                
         
 def build_test_constraint_system():
@@ -200,9 +211,13 @@ def build_test_constraint_system():
     system.add_constraint(2, -1, 0, 0, 0, a, b, c)
     system.add_constraint(0, 0, 1, 1, 0, a, b, c)
     
-    return system.construct_poly_encoding()
+    polys = system.construct_poly_encoding()
+    print_polys(*polys)
     
     
 build_test_constraint_system()
+
+
+
 
                
